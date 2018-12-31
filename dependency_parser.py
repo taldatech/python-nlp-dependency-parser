@@ -64,6 +64,7 @@ class DependencyParser:
 
                 graph = Digraph(successors, dep_weights.get_score)
                 argmax_tree = graph.mst().successors
+                argmax_tree = {k: v for k, v in argmax_tree.items() if v}
 
                 ground_truth_successors = sample_to_successors(sample)
 
