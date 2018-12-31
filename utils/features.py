@@ -7,43 +7,8 @@ from collections import namedtuple
 from random import shuffle
 import copy
 from itertools import combinations, combinations_with_replacement
+from utils.utils import ROOT, dep_sample_generator
 # named tuple has methods like _asdict()
-
-"""
-UNIGRAMS + BIGRAMS
-"""
-
-
-def extract_unigram_bigram_feat_indices(sample, dicts, minimal=False):
-    """
-    This function extracts the indices (in the feature vector) of the features:
-    * (head_word, head_pos)
-    * (head_word)
-    * (head_pos)
-    * (child_word, child_pos)
-    * (child_word)
-    * (child_pos)
-    * (head_word, head_pos, child_word, child_pos)
-    * (head_pos, child_word, child_pos)
-    * (head_word, head_pos, child_pos)
-    * (head_word, head_pos, child_pos)
-    * (head_word, head_pos, child_word)
-    * (head_word, child_word)
-    * (head_pos, child_pos)
-    :param: sample: the sample to extract features from (list of DepSample)
-    :param: dicts: the dictionaries of indices [unigram_dicts, bigrams_dicts] (list)
-    :param: minimal: whether or not to use the minimal version (bool)
-    :return: feat_indices_dict: dictionary idx->count
-    """
-    unigram_dict, bigram_dict = dicts[0], dicts[1]
-    unigram_inds = extract_unigram_feat_indices(sample, unigram_dict)
-    feat_indices_dict = copy.deepcopy(unigram_inds)
-    if minimal:
-        bigram_inds = extract_bigram_feat_indices_minimal(sample, bigram_dict)
-    else:
-        bigram_inds = extract_bigram_feat_indices(sample, bigram_dict)
-    update_dict(feat_indices_dict, bigram_inds)
-    return OrderedDict(sorted(feat_indices_dict.items(), key=lambda t: t[0]))
 
 
 def generate_word_hist_dict(path_to_file, save_to_file=False):
@@ -74,6 +39,7 @@ def generate_word_hist_dict(path_to_file, save_to_file=False):
 """
 UNIGRAMS
 """
+
 
 def generate_hw_hp_feat_dict(path_to_file, word_threshold=0, save_to_file=False, word_hist=None):
     """
@@ -905,16 +871,29 @@ def generate_bigram_feat_dict(path_to_file, word_threshold=0, save_to_file=False
            hw_hp_cw_dict, hw_cw_dict, hp_cp_dict
 
 
-def update_dict(current_dict, dict_to_add):
+def update_dict(current_dict, dict_to_add, current_num_features):
     """
     This function takes two dictionaries with indices as keys, and combines them.
     :param: current_dict: first dictionary
     :param: dict_to_add: second dictionary
+    :param: current_num_features: total number of features (int)
     """
     #     comb_dict = copy.deepcopy(current_dict)
-    current_num_features = len(current_dict)
     for item in dict_to_add.items():
         current_dict[current_num_features + item[0]] = item[1]
+
+
+def update_list(current_list, list_to_add, current_num_features):
+    """
+    This function takes two lists with indices, and combines them.
+    :param: current_list: first list
+    :param: list_to_add: second list
+    :param: current_num_features: total number of features (int)
+    """
+    if list_to_add:
+        return (current_list + (np.array(list_to_add) + current_num_features).tolist())
+    else:
+        return current_list
 
 
 def extract_bigram_feat_indices(sample, bigram_dict):
@@ -949,28 +928,28 @@ def extract_bigram_feat_indices(sample, bigram_dict):
     bigram_indices = copy.deepcopy(hw_hp_cw_cp_ind)
 
     hp_cw_cp_ind = extract_hp_cw_cp_feat_indices(sample, hp_cw_cp_dict)
+    update_dict(bigram_indices, hp_cw_cp_ind, current_num_features)
     current_num_features += num_hp_cw_cp_feats
-    update_dict(bigram_indices, hp_cw_cp_ind)
 
     hw_cw_cp_ind = extract_hw_cw_cp_feat_indices(sample, hw_cw_cp_dict)
+    update_dict(bigram_indices, hw_cw_cp_ind, current_num_features)
     current_num_features += num_hw_cw_cp_feats
-    update_dict(bigram_indices, hw_cw_cp_ind)
 
     hw_hp_cp_ind = extract_hw_hp_cp_feat_indices(sample, hw_hp_cp_dict)
+    update_dict(bigram_indices, hw_hp_cp_ind, current_num_features)
     current_num_features += num_hw_hp_cp_feats
-    update_dict(bigram_indices, hw_hp_cp_ind)
 
     hw_hp_cw_ind = extract_hw_hp_cw_feat_indices(sample, hw_hp_cw_dict)
+    update_dict(bigram_indices, hw_hp_cw_ind, current_num_features)
     current_num_features += num_hw_hp_cw_feats
-    update_dict(bigram_indices, hw_hp_cw_ind)
 
     hw_cw_ind = extract_hw_cw_feat_indices(sample, hw_cw_dict)
+    update_dict(bigram_indices, hw_cw_ind, current_num_features)
     current_num_features += num_hw_cw_feats
-    update_dict(bigram_indices, hw_cw_ind)
 
     hp_cp_ind = extract_hp_cp_feat_indices(sample, hp_cp_dict)
+    update_dict(bigram_indices, hp_cp_ind, current_num_features)
     current_num_features += num_hp_cp_feats
-    update_dict(bigram_indices, hp_cp_ind)
 
     return OrderedDict(sorted(bigram_indices.items(), key=lambda t: t[0]))
 
@@ -1008,28 +987,28 @@ def extract_bigram_feat_indices_pair(head, child, bigram_dict):
     bigram_indices = copy.deepcopy(hw_hp_cw_cp_ind)
 
     hp_cw_cp_ind = extract_hp_cw_cp_feat_indices_pair(head, child, hp_cw_cp_dict)
+    bigram_indices = update_list(bigram_indices, hp_cw_cp_ind, current_num_features)
     current_num_features += num_hp_cw_cp_feats
-    bigram_indices.extend(hp_cw_cp_ind)
 
     hw_cw_cp_ind = extract_hw_cw_cp_feat_indices_pair(head, child, hw_cw_cp_dict)
+    bigram_indices = update_list(bigram_indices, hw_cw_cp_ind, current_num_features)
     current_num_features += num_hw_cw_cp_feats
-    bigram_indices.extend(hw_cw_cp_ind)
 
     hw_hp_cp_ind = extract_hw_hp_cp_feat_indices_pair(head, child, hw_hp_cp_dict)
+    bigram_indices = update_list(bigram_indices, hw_hp_cp_ind, current_num_features)
     current_num_features += num_hw_hp_cp_feats
-    bigram_indices.extend(hw_hp_cp_ind)
 
     hw_hp_cw_ind = extract_hw_hp_cw_feat_indices_pair(head, child, hw_hp_cw_dict)
+    bigram_indices = update_list(bigram_indices, hw_hp_cw_ind, current_num_features)
     current_num_features += num_hw_hp_cw_feats
-    bigram_indices.extend(hw_hp_cw_ind)
 
     hw_cw_ind = extract_hw_cw_feat_indices_pair(head, child, hw_cw_dict)
+    bigram_indices = update_list(bigram_indices, hw_cw_ind, current_num_features)
     current_num_features += num_hw_cw_feats
-    bigram_indices.extend(hw_cw_ind)
 
     hp_cp_ind = extract_hp_cp_feat_indices_pair(head, child, hp_cp_dict)
+    bigram_indices = update_list(bigram_indices, hp_cp_ind, current_num_features)
     current_num_features += num_hp_cp_feats
-    bigram_indices.extend(hp_cp_ind)
 
     return sorted(bigram_indices)
 
@@ -1088,12 +1067,12 @@ def extract_bigram_feat_indices_minimal(sample, bigram_dict):
     bigram_indices = copy.deepcopy(hp_cw_cp_ind)
 
     hw_hp_cp_ind = extract_hw_hp_cp_feat_indices(sample, hw_hp_cp_dict)
+    update_dict(bigram_indices, hw_hp_cp_ind, current_num_features)
     current_num_features += num_hw_hp_cp_feats
-    update_dict(bigram_indices, hw_hp_cp_ind)
 
     hp_cp_ind = extract_hp_cp_feat_indices(sample, hp_cp_dict)
+    update_dict(bigram_indices, hp_cp_ind, current_num_features)
     current_num_features += num_hp_cp_feats
-    update_dict(bigram_indices, hp_cp_ind)
 
     return OrderedDict(sorted(bigram_indices.items(), key=lambda t: t[0]))
 
@@ -1118,15 +1097,87 @@ def extract_bigram_feat_indices_minimal_pair(head, child, bigram_dict):
     current_num_features = 0
 
     hp_cw_cp_ind = extract_hp_cw_cp_feat_indices_pair(head, child, hp_cw_cp_dict)
-    current_num_features += num_hp_cw_cp_feats
     bigram_indices = copy.deepcopy(hp_cw_cp_ind)
+    current_num_features += num_hp_cw_cp_feats
 
     hw_hp_cp_ind = extract_hw_hp_cp_feat_indices_pair(head, child, hw_hp_cp_dict)
+    bigram_indices = update_list(bigram_indices, hw_hp_cp_ind, current_num_features)
     current_num_features += num_hw_hp_cp_feats
-    bigram_indices.extend(hw_hp_cp_ind)
 
     hp_cp_ind = extract_hp_cp_feat_indices_pair(head, child, hp_cp_dict)
+    bigram_indices = update_list(bigram_indices, hp_cp_ind, current_num_features)
     current_num_features += num_hp_cp_feats
-    bigram_indices.extend(hp_cp_ind)
 
     return sorted(bigram_indices)
+
+
+"""
+UNIGRAMS + BIGRAMS
+"""
+
+
+def extract_unigram_bigram_feat_indices(sample, dicts, minimal=False):
+    """
+    This function extracts the indices (in the feature vector) of the features:
+    * (head_word, head_pos)
+    * (head_word)
+    * (head_pos)
+    * (child_word, child_pos)
+    * (child_word)
+    * (child_pos)
+    * (head_word, head_pos, child_word, child_pos)
+    * (head_pos, child_word, child_pos)
+    * (head_word, head_pos, child_pos)
+    * (head_word, head_pos, child_pos)
+    * (head_word, head_pos, child_word)
+    * (head_word, child_word)
+    * (head_pos, child_pos)
+    :param: sample: the sample to extract features from (list of DepSample)
+    :param: dicts: the dictionaries of indices [unigram_dicts, bigrams_dicts] (list)
+    :param: minimal: whether or not to use the minimal version (bool)
+    :return: feat_indices_dict: dictionary idx->count
+    """
+    unigram_dict, bigram_dict = dicts[0], dicts[1]
+    unigram_inds = extract_unigram_feat_indices(sample, unigram_dict)
+    feat_indices_dict = copy.deepcopy(unigram_inds)
+    if minimal:
+        bigram_inds = extract_bigram_feat_indices_minimal(sample, bigram_dict)
+    else:
+        bigram_inds = extract_bigram_feat_indices(sample, bigram_dict)
+    update_dict(feat_indices_dict, bigram_inds, sum(len(d) for d in unigram_dict))
+    return OrderedDict(sorted(feat_indices_dict.items(), key=lambda t: t[0]))
+
+
+def extract_unigram_bigram_feat_indices_pair(head, child, dicts, minimal=False):
+    """
+    This function extracts the indices (in the feature vector) of the features:
+    * (head_word, head_pos)
+    * (head_word)
+    * (head_pos)
+    * (child_word, child_pos)
+    * (child_word)
+    * (child_pos)
+    * (head_word, head_pos, child_word, child_pos)
+    * (head_pos, child_word, child_pos)
+    * (head_word, head_pos, child_pos)
+    * (head_word, head_pos, child_pos)
+    * (head_word, head_pos, child_word)
+    * (head_word, child_word)
+    * (head_pos, child_pos)
+    :param: head: head DepSample (DepSample)
+    :param: child: child DepSample (DepSample)
+    :param: dicts: the dictionaries of indices [unigram_dicts, bigrams_dicts] (list)
+    :param: minimal: whether or not to use the minimal version (bool)
+    :return: feat_indices_list: list of feature inices that turned on
+    """
+    unigram_dict, bigram_dict = dicts[0], dicts[1]
+    unigram_inds = extract_unigram_feat_indices_pair(head, child, unigram_dict)
+    feat_indices_list = copy.deepcopy(unigram_inds)
+    if minimal:
+        bigram_inds = extract_bigram_feat_indices_minimal_pair(head, child, bigram_dict)
+    else:
+        bigram_inds = extract_bigram_feat_indices_pair(head, child, bigram_dict)
+    feat_indices_list = update_list(feat_indices_list, bigram_inds, sum(len(d) for d in unigram_dict))
+    return sorted(feat_indices_list)
+
+

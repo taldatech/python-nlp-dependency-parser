@@ -4,6 +4,8 @@ import os
 from typing import List
 from copy import deepcopy
 from utils.chu_liu import Digraph
+from utils.features import generate_unigram_feat_dict, generate_bigram_feat_dict_minimal, generate_bigram_feat_dict, \
+    extract_unigram_bigram_feat_indices_pair, extract_unigram_bigram_feat_indices
 from utils.utils import dep_sample_generator,\
     sample_to_full_successors, successors_to_sample,\
     DepSample, sample_to_successors
@@ -19,15 +21,22 @@ class DependencyParser:
     ...
     """
 
-    def __init__(self, path_to_train_file: str):
+    def __init__(self, path_to_train_file: str, minimal: bool = True):
         """
 
         :param path_to_train_file:
         """
 
         self.training_file_path = path_to_train_file
-        # self.dicts = generate feature dicts
-        self.num_of_features = 65000  #_calc_num_of_features()
+        self.minimal = minimal
+        if minimal:
+            self.dicts = [generate_unigram_feat_dict(path_to_file), generate_bigram_feat_dict_minimal(path_to_file)]
+        else:
+            self.dicts = [generate_unigram_feat_dict(path_to_file), generate_bigram_feat_dict(path_to_file)]
+
+        self.feature_extractor = extract_unigram_bigram_feat_indices
+
+        self.num_of_features = np.sum([len(k) for d in self.dicts for k in d])
 
         self.weights_file_name = os.path.join(os.path.dirname(self.training_file_path), '_weights.ndarray')
 
@@ -46,12 +55,12 @@ class DependencyParser:
         """
         self.w = np.zeros(self.num_of_features)
         for i in range(num_iterations):
-
+            print('iteration #', i)
             for sample in dep_sample_generator(self.training_file_path):
 
                 sample_len = sample[-1].idx
                 successors = sample_to_full_successors(sample_len)
-                dep_weights = DepOptimizer(self.w, sample)
+                dep_weights = DepOptimizer(self.w, sample, dicts=self.dicts, minimal=self.minimal)
 
                 graph = Digraph(successors, dep_weights.get_score)
                 argmax_tree = graph.mst().successors
@@ -62,13 +71,13 @@ class DependencyParser:
                 #  returning true only if both have same keys and same values to those keys
                 #  order of dict.values() corresponded to dict.keys()
                 if argmax_tree != ground_truth_successors:
-                    features_ground_truth = {0: 1}  # TODO extract_unigram_bigram_feat_indices(sample, self.dicts)
-                    features_argmax = {3: 2}  # TODO extract_unigram_bigram_feat_indices(successors_to_sample(sample, argmax_tree), self.dicts)
+                    features_ground_truth = self.feature_extractor(sample, self.dicts, self.minimal)
+                    features_argmax = self.feature_extractor(successors_to_sample(sample, argmax_tree),
+                                                             self.dicts, self.minimal)
                     self.w[list(features_ground_truth.keys())] += np.array(list(features_ground_truth.values()))
-                    self.w[list(features_argmax.keys())] += np.array(list(features_argmax.values()))
+                    self.w[list(features_argmax.keys())] -= np.array(list(features_argmax.values()))
 
         self.w.dump(self.weights_file_name)
-
 
     def infer(self, sentence: List[DepSample])-> List[DepSample]:
         """
@@ -93,15 +102,34 @@ class DepOptimizer:
     calculates scores for edges.
     """
 
-    def __init__(self, w, sample):
+    def __init__(self, w, sample, path_to_train_file=None, dicts=None, feature_extractor=None, minimal=True):
         """
         Initialzie an optimzier.
         :param: w: weights (list)
         :param: sample: current sample (list of DepSample)
+        :param: path_to_train_file: training file that contains the samples
+        :param: dicts: dictionaries of features (list of dicts)
+        :param: feature_extractor: function to extract feature for (head, child)
+        :param: minimal: whether or not to use the minimal version of the features
         """
         self.w = w
         self.sample = sample
-        # add dicts ?
+        self.minimal = minimal
+        if path_to_train_file is None:
+            self.path_to_train_file = './data/train.labeled'
+        else:
+            self.path_to_train_file = path_to_train_file
+
+        self.dicts = dicts
+        if dicts is None:
+            if minimal:
+                self.dicts = [generate_unigram_feat_dict(path_to_file), generate_bigram_feat_dict_minimal(path_to_file)]
+            else:
+                self.dicts = [generate_unigram_feat_dict(path_to_file), generate_bigram_feat_dict(path_to_file)]
+        if feature_extractor is None:
+            self.feature_extractor = extract_unigram_bigram_feat_indices_pair
+        else:
+            self.feature_extractor = feature_extractor
 
     def get_score(self, head_int, child_int):
         """
@@ -110,8 +138,9 @@ class DepOptimizer:
         :param: child_int: child node id (int)
         :return: score: score for the edge (float)
         """
-        # TODO: implemenet np.sum(w[extract_local_features(self.sample[head_int], self.sample[child_int], self.dicts)])
-        return 0
+        features_inds = self.feature_extractor(self.sample[head_int], self.sample[child_int], self.dicts, self.minimal)
+        w = np.array(self.w)
+        return np.sum(w[features_inds])
 
     def update_weights(self, w):
         """
@@ -125,10 +154,8 @@ class DepOptimizer:
         Upates current sample.
         """
         self.sample = sample
-
-
 if __name__ == '__main__':
 
     path_to_file = './data/train.labeled'
     parser = DependencyParser(path_to_file)
-    parser.preceptron_train(5)
+    parser.preceptron_train(1000)
