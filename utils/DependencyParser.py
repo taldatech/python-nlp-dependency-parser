@@ -5,9 +5,10 @@ import numpy as np
 from copy import deepcopy
 from typing import List
 import os
-from utils.utils import dep_sample_generator,\
-    sample_to_full_successors, successors_to_sample,\
-    DepSample, sample_to_successors
+from utils.utils import dep_sample_generator, \
+    sample_to_full_successors, successors_to_sample, \
+    DepSample, sample_to_successors, generate_fully_connected_graphs, generate_ground_truth_trees, \
+    generate_global_features_dict
 from utils.features import generate_unigram_feat_dict, generate_bigram_feat_dict_minimal, generate_bigram_feat_dict, \
     extract_unigram_bigram_feat_indices_pair, extract_unigram_bigram_feat_indices
 from utils.DepOptimizer import DepOptimizer
@@ -39,6 +40,15 @@ class DependencyParser:
         else:
             self.dicts = [generate_unigram_feat_dict(path_to_train_file),
                           generate_bigram_feat_dict(path_to_train_file)]
+
+        self.fc_graphs = generate_fully_connected_graphs(path_to_train_file)
+        self.gt_trees = generate_ground_truth_trees(path_to_train_file)
+
+        # self.gt_global_features = generate_global_features_dict(path_to_train_file,
+        #                                                         lambda sample: self.feature_extractor(sample,
+        #                                                                                               self.dicts,
+        #                                                                                               self.minimal),
+        #                                                         True)
 
         self.feature_extractor = extract_unigram_bigram_feat_indices
 
@@ -77,10 +87,10 @@ class DependencyParser:
             total_words = 0
             correct_words = 0
             it_st_time = time.time()
-            for sample in dep_sample_generator(self.training_file_path):
+            for idx, sample in enumerate(dep_sample_generator(self.training_file_path)):
                 total_sentences += 1
                 sample_len = sample[-1].idx
-                successors = sample_to_full_successors(sample_len)
+                successors = self.fc_graphs[sample_len]  # sample_to_full_successors(sample_len)
                 # TODO: consider moving DepOptimizer out of the loop and just use update_weights, update_sample
                 # dep_weights = DepOptimizer(self.w, sample, dicts=self.dicts, minimal=self.minimal)
                 self.dep_weights.update_sample(sample)
@@ -96,13 +106,14 @@ class DependencyParser:
                     total_words += 1
                     if sample[j].head == infered_sample[j].head:
                         correct_words += 1
-                ground_truth_successors = sample_to_successors(sample)
+                ground_truth_successors = self.gt_trees[idx]  # sample_to_successors(sample)
 
                 #  according to python doc dictionary == works as expected
                 #  returning true only if both have same keys and same values to those keys
                 #  order of dict.values() corresponded to dict.keys()
                 if argmax_tree != ground_truth_successors:
-                    features_ground_truth = self.feature_extractor(sample, self.dicts, self.minimal)
+                    features_ground_truth = self.feature_extractor(sample, self.dicts, self.minimal)  #  could also be replaced by a dict
+                    # features_ground_truth = self.gt_global_features[idx]
                     features_argmax = self.feature_extractor(infered_sample,
                                                              self.dicts, self.minimal)
                     self.w[list(features_ground_truth.keys())] += np.array(list(features_ground_truth.values()))

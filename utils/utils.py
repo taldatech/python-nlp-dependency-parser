@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 from collections import OrderedDict
 from collections import namedtuple
+from typing import List
 
 import copy
 
@@ -141,4 +142,75 @@ def successors_to_sample(sample_no_head, succ_rep):
                                    sample_no_head[c].pos, head)
             sample_with_heads.append(new_sample)
     return sorted(sample_with_heads, key=lambda t: t.idx)
+
+
+def generate_fully_connected_graphs(training_file_name: str, save_to_file: bool=False)->dict:
+    """
+    returns a dictionary where key is sentence length and value is a fully connected graph
+    of the sentence represented by a "successors dictionary"
+    this method exists only as a way to help speed up training by pre calculating all needed fc graphs
+    :param save_to_file: if to save generated dict to a pickle
+    :param training_file_name: to extract all possible sentence lengths seen in the data
+    :return: the described dict of dicts
+    """
+
+    fc_graphs = {}
+    for sample in dep_sample_generator(training_file_name):
+        sample_len = sample[-1].idx
+        successors = sample_to_full_successors(sample_len)
+        fc_graphs[sample_len] = successors
+
+    if save_to_file:
+        path = training_file_name + ".fc_graphs.dict"
+        with open(path, 'wb') as fp:
+            pickle.dump(training_file_name, fp)
+        print("saved fully connected graphs dictionary @ ", path)
+    return fc_graphs
+
+
+def generate_ground_truth_trees(training_file_name: str, save_to_file: bool=False) -> dict:
+    """
+    returns a dictionary where key is sentence index and value is the ground truth tree graph
+    of the sentence represented by a "successors dictionary"
+    this method exists only as a way to help speed up training by pre calculating all needed fc graphs
+    :param save_to_file: if to save generated dict to a pickle
+    :param training_file_name: to extract all possible sentence lengths seen in the data
+    :return: the described dict of dicts
+    """
+
+    fc_graphs = {}
+    for idx, sample in enumerate(dep_sample_generator(training_file_name)):
+        ground_truth_successors = sample_to_successors(sample)
+        fc_graphs[idx] = ground_truth_successors
+
+    if save_to_file:
+        path = training_file_name + ".gt_trees.dict"
+        with open(path, 'wb') as fp:
+            pickle.dump(training_file_name, fp)
+        print("saved ground truth trees dictionary @ ", path)
+    return fc_graphs
+
+
+def generate_global_features_dict(training_file_name: str, feature_extractor, save_to_file: bool) -> dict:
+    """
+    returns a dictionary where key is sentence index and value is a dict features of the sentence
+    this method exists only as a way to help speed up training by pre calculating all needed fc graphs
+    :param feature_extractor: lambda expr or callable that takes a sample and returns a dict
+            of its features.
+    :param save_to_file: if to save generated dict to a pickle
+    :param training_file_name: to extract all possible sentence lengths seen in the data
+    :return: the described dict of dicts
+    """
+
+    global_features_dict = {}
+    for idx, sample in enumerate(dep_sample_generator(training_file_name)):
+        global_features_dict[idx] = feature_extractor(sample)
+
+    if save_to_file:
+        path = training_file_name + ".gt_global_features.dict"
+        with open(path, 'wb') as fp:
+            pickle.dump(training_file_name, fp)
+        print("saved ground truth global features dictionary @ ", path)
+    return global_features_dict
+
 
