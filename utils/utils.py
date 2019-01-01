@@ -3,9 +3,9 @@ import pickle
 import numpy as np
 from collections import OrderedDict
 from collections import namedtuple
-from random import shuffle
+
 import copy
-from itertools import combinations, combinations_with_replacement
+
 # named tuple has methods like _asdict()
 ROOT = "*"
 DepSample = namedtuple('DepSample', 'idx, token, pos, head')

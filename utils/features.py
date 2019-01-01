@@ -36,6 +36,7 @@ def generate_word_hist_dict(path_to_file, save_to_file=False):
         print("word histogram dictionary saved @ ", path)
     return word_hist
 
+
 """
 UNIGRAMS
 """
