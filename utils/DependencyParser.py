@@ -78,6 +78,8 @@ class DependencyParser:
         st_time = time.time()
         # dep_weights = DepOptimizer(self.w, None, path_to_train_file=self.training_file_path,
         #                            dicts=self.dicts, minimal=self.minimal) # moved to class level
+        train_word_accuracies = []
+        train_sentenence_accuracies = []
         for i in range(num_iterations):
             total_sentences = 0
             correct_sentences = 0
@@ -122,6 +124,8 @@ class DependencyParser:
                     correct_sentences += 1
             sen_acc = 1.0 * correct_sentences / total_sentences
             word_acc = 1.0 * correct_words / total_words
+            train_sentenence_accuracies.append(sen_acc)
+            train_word_accuracies.append(word_acc)
             print('iteration/epoch ', i, "- iteration time: %.2f min" % ((time.time() - it_st_time) / 60),
                   ", train accuracy:: sentence: %.3f " % sen_acc,
                   " words: %.3f " % word_acc,
@@ -135,15 +139,22 @@ class DependencyParser:
                 # save checkpoint
                 path = self.training_file_path + "_epoch_" + str(i) + ".checkpoint"
                 ckpt = {}
-                Acc = namedtuple("Accuracy", 'sentences, words')
                 ckpt['weights'] = self.w.tolist()
-                ckpt['train_acc'] = Acc(sen_acc, word_acc)
-                ckpt['valid_acc'] = Acc(valid_sent_acc, valid_word_acc)
+                ckpt['train_acc'] = (sen_acc, word_acc)
+                ckpt['valid_acc'] = (valid_sent_acc, valid_word_acc)
                 with open(path, 'wb') as fp:
                     pickle.dump(ckpt, fp)
                 print("saved checkpoint @ ", path)
 
         self.w.dump(self.weights_file_name)
+        path = self.training_file_path + + "_" + str(i) + "_epochs" + + ".results"
+        ckpt = {}
+        ckpt['weights'] = self.w.tolist()
+        ckpt['train_word_acc'] = train_word_accuracies
+        ckpt['train_sen_acc'] = train_sentenence_accuracies
+        with open(path, 'wb') as fp:
+            pickle.dump(ckpt, fp)
+        print("saved final results @ ", path)
 
     def infer(self, sentence: List[DepSample])-> List[DepSample]:
         """
