@@ -1,5 +1,6 @@
 import os
 import pickle
+import time
 import numpy as np
 from collections import OrderedDict
 from collections import namedtuple
@@ -191,26 +192,36 @@ def generate_ground_truth_trees(training_file_name: str, save_to_file: bool=Fals
     return fc_graphs
 
 
-def generate_global_features_dict(training_file_name: str, feature_extractor, save_to_file: bool) -> dict:
+def generate_global_features_dict(training_file_name: str, feature_extractor, dicts,
+                                  save_to_file: bool, minimal=True) -> dict:
     """
     returns a dictionary where key is sentence index and value is a dict features of the sentence
     this method exists only as a way to help speed up training by pre calculating all needed fc graphs
-    :param feature_extractor: lambda expr or callable that takes a sample and returns a dict
-            of its features.
-    :param save_to_file: if to save generated dict to a pickle
     :param training_file_name: to extract all possible sentence lengths seen in the data
+    :param: feature_extractor: function to extract feature for (head, child)
+    :param: dicts: dictionaries of features (list of dicts)
+    :param save_to_file: if to save generated dict to a pickle
+    :param: minimal: whether or not to use the minimal version of the features
     :return: the described dict of dicts
     """
+    path = training_file_name + ".gt_global_features.dict"
+    if os.path.isfile(path):
+        with open(path, 'rb') as fp:
+            global_features_dict = pickle.load(fp)
+            print("loaded global samples to features dictionary from ", path)
+            return global_features_dict
 
+    print("generating features for all samples in the training set")
+    st_time = time.time()
     global_features_dict = {}
     for idx, sample in enumerate(dep_sample_generator(training_file_name)):
-        global_features_dict[idx] = feature_extractor(sample)
+        global_features_dict[idx] = feature_extractor(sample, dicts, minimal)
 
     if save_to_file:
-        path = training_file_name + ".gt_global_features.dict"
         with open(path, 'wb') as fp:
-            pickle.dump(training_file_name, fp)
+            pickle.dump(global_features_dict, fp)
         print("saved ground truth global features dictionary @ ", path)
+    print("time took: %.3f secs" % (time.time() - st_time))
     return global_features_dict
 
 

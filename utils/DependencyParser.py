@@ -12,6 +12,8 @@ from utils.utils import dep_sample_generator, \
 from utils.features import generate_unigram_feat_dict, generate_bigram_feat_dict_minimal, generate_bigram_feat_dict, \
     extract_unigram_bigram_feat_indices_pair, extract_unigram_bigram_feat_indices
 from utils.DepOptimizer import DepOptimizer
+from collections import namedtuple
+import pickle
 
 
 class DependencyParser:
@@ -41,21 +43,16 @@ class DependencyParser:
             self.dicts = [generate_unigram_feat_dict(path_to_train_file),
                           generate_bigram_feat_dict(path_to_train_file)]
 
+        self.feature_extractor = extract_unigram_bigram_feat_indices
         self.fc_graphs = generate_fully_connected_graphs(path_to_train_file)
         self.gt_trees = generate_ground_truth_trees(path_to_train_file)
-
-        # self.gt_global_features = generate_global_features_dict(path_to_train_file,
-        #                                                         lambda sample: self.feature_extractor(sample,
-        #                                                                                               self.dicts,
-        #                                                                                               self.minimal),
-        #                                                         True)
-
-        self.feature_extractor = extract_unigram_bigram_feat_indices
+        self.gt_global_features = generate_global_features_dict(path_to_train_file, self.feature_extractor, self.dicts,
+                                                                save_to_file=True, minimal=self.minimal)
 
         self.num_of_features = np.sum([len(k) for d in self.dicts for k in d])
         print("total number features in the model: ", self.num_of_features)
 
-        self.weights_file_name = os.path.join(os.path.dirname(self.training_file_path), '.weights')
+        self.weights_file_name = self.training_file_path + '.weights'
 
         if os.path.isfile(self.weights_file_name):
             self.w = np.load(self.weights_file_name)
@@ -91,13 +88,14 @@ class DependencyParser:
                 total_sentences += 1
                 sample_len = sample[-1].idx
                 successors = self.fc_graphs[sample_len]  # sample_to_full_successors(sample_len)
-                # TODO: consider moving DepOptimizer out of the loop and just use update_weights, update_sample
                 # dep_weights = DepOptimizer(self.w, sample, dicts=self.dicts, minimal=self.minimal)
                 self.dep_weights.update_sample(sample)
                 self.dep_weights.update_weights(self.w)
                 graph = Digraph(successors, self.dep_weights.get_score)
+                mst_start_time = time.time()
                 argmax_tree = graph.mst().successors
                 argmax_tree = {k: v for k, v in argmax_tree.items() if v}
+                # print("mst calc time: %.5f secs" % (time.time() - mst_start_time))
                 infered_sample = successors_to_sample(deepcopy(sample), argmax_tree)
                 for j in range(len(sample)):
                     if not j:
@@ -112,24 +110,38 @@ class DependencyParser:
                 #  returning true only if both have same keys and same values to those keys
                 #  order of dict.values() corresponded to dict.keys()
                 if argmax_tree != ground_truth_successors:
-                    features_ground_truth = self.feature_extractor(sample, self.dicts, self.minimal)  #  could also be replaced by a dict
-                    # features_ground_truth = self.gt_global_features[idx]
+                    # features_ground_truth = self.feature_extractor(sample, self.dicts, self.minimal)  #  could also be replaced by a dict
+                    features_ground_truth = self.gt_global_features[idx]
+                    feat_calc_start_time = time.time()
                     features_argmax = self.feature_extractor(infered_sample,
                                                              self.dicts, self.minimal)
+                    # print("feature extraction time: %.5f" % (time.time() - feat_calc_start_time))
                     self.w[list(features_ground_truth.keys())] += np.array(list(features_ground_truth.values()))
                     self.w[list(features_argmax.keys())] -= np.array(list(features_argmax.values()))
                 else:
                     correct_sentences += 1
+            sen_acc = 1.0 * correct_sentences / total_sentences
+            word_acc = 1.0 * correct_words / total_words
             print('iteration/epoch ', i, "- iteration time: %.2f min" % ((time.time() - it_st_time) / 60),
-                  ", train accuracy:: sentence: %.3f " % (1.0 * correct_sentences / total_sentences),
-                  " words: %.3f " % (1.0 * correct_words / total_words),
+                  ", train accuracy:: sentence: %.3f " % sen_acc,
+                  " words: %.3f " % word_acc,
                   ", total time: %.2f min" % ((time.time() - st_time) / 60))
-            if i % accuracy_step == 0 and self.path_to_valid_file is not None:
+            if (i + 1) % accuracy_step == 0 and self.path_to_valid_file is not None:
                 print("validation accuracy calculation step:")
                 valid_sent_acc, valid_word_acc = self.calc_accuracy(self.path_to_valid_file)
                 print("valid accuracy:: sentence: %.3f" % valid_sent_acc, " words: %.3f" % valid_word_acc)
                 self.w.dump(self.weights_file_name)
                 print("saved weights @ ", self.weights_file_name)
+                # save checkpoint
+                path = self.training_file_path + "_epoch_" + str(i) + ".checkpoint"
+                ckpt = {}
+                Acc = namedtuple("Accuracy", 'sentences, words')
+                ckpt['weights'] = self.w.tolist()
+                ckpt['train_acc'] = Acc(sen_acc, word_acc)
+                ckpt['valid_acc'] = Acc(valid_sent_acc, valid_word_acc)
+                with open(path, 'wb') as fp:
+                    pickle.dump(ckpt, fp)
+                print("saved checkpoint @ ", path)
 
         self.w.dump(self.weights_file_name)
 
