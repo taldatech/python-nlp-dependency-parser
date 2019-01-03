@@ -147,7 +147,7 @@ class DependencyParser:
                 print("saved checkpoint @ ", path)
 
         self.w.dump(self.weights_file_name)
-        path = self.training_file_path + + "_" + str(i) + "_epochs" + + ".results"
+        path = self.training_file_path + "_" + str(i) + "_epochs" + ".results"
         ckpt = {}
         ckpt['weights'] = self.w.tolist()
         ckpt['train_word_acc'] = train_word_accuracies
