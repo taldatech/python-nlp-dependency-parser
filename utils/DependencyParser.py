@@ -207,7 +207,7 @@ class DependencyParser:
         """
         This function generates labels for unlabeled samples in the same
         format as the original file.
-        :param: path_to_unlabeled_file: path to loccation of the file (str)
+        :param: path_to_unlabeled_file: path to location of the file (str)
         """
         root = DepSample(0, ROOT, ROOT, 0)
         path_to_labeled = path_to_unlabeled_file + '.labeled'
