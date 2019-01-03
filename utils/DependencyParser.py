@@ -8,9 +8,9 @@ import os
 from utils.utils import dep_sample_generator, \
     sample_to_full_successors, successors_to_sample, \
     DepSample, sample_to_successors, generate_fully_connected_graphs, generate_ground_truth_trees, \
-    generate_global_features_dict
+    generate_global_features_dict, sample_to_lines
 from utils.features import generate_unigram_feat_dict, generate_bigram_feat_dict_minimal, generate_bigram_feat_dict, \
-    extract_unigram_bigram_feat_indices_pair, extract_unigram_bigram_feat_indices
+    extract_unigram_bigram_feat_indices_pair, extract_unigram_bigram_feat_indices, ROOT
 from utils.DepOptimizer import DepOptimizer
 from collections import namedtuple
 import pickle
@@ -147,7 +147,7 @@ class DependencyParser:
                 print("saved checkpoint @ ", path)
 
         self.w.dump(self.weights_file_name)
-        path = self.training_file_path + "_" + str(i) + "_epochs" + ".results"
+        path = self.training_file_path + "_" + str(i + 1) + "_epochs" + ".results"
         ckpt = {}
         ckpt['weights'] = self.w.tolist()
         ckpt['train_word_acc'] = train_word_accuracies
@@ -202,3 +202,38 @@ class DependencyParser:
         sentence_accuracy = 1.0 * correct_sentences / total_sentences
         word_accuracy = 1.0 * correct_words / total_words
         return sentence_accuracy, word_accuracy
+
+    def generate_labeled_file(self, path_to_unlabeled_file):
+        """
+        This function generates labels for unlabeled samples in the same
+        format as the original file.
+        :param: path_to_unlabeled_file: path to loccation of the file (str)
+        """
+        root = DepSample(0, ROOT, ROOT, 0)
+        path_to_labeled = path_to_unlabeled_file + '.labeled'
+        with open(path_to_labeled, 'w') as fw:
+            with open(path_to_unlabeled_file) as fr:
+                sample = [root]
+                lines = []
+                for line in fr:
+                    if not line.rstrip():
+                        # end of sample
+                        infered_sample = self.infer(sample)
+                        # infered_sample = sample
+                        res_lines = sample_to_lines(infered_sample, lines)
+                        for l in res_lines:
+                            fw.write(l)
+                            fw.write('\n')
+                        fw.write('\n')
+                        sample = [root]
+                        lines = []
+                    else:
+                        lines.append(line)
+                        ls = line.rstrip().split('\t')
+                        try:
+                            head = int(ls[6])
+                        except ValueError:
+                            head = ls[6]
+                        sample.append(DepSample(int(ls[0]), ls[1], ls[3], head))
+        print("finished generating labeled file of ", path_to_unlabeled_file, " @ ", path_to_labeled)
+

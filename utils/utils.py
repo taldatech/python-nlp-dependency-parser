@@ -225,3 +225,20 @@ def generate_global_features_dict(training_file_name: str, feature_extractor, di
     return global_features_dict
 
 
+def sample_to_lines(sample, ref_lines):
+    """
+    This function generates lines from sample.
+    :param: sample: list of DepSamples (list)
+    :param: ref_lines: list of original lines (list of str)
+    :returns: line
+    """
+    res_lines = []
+    for s_i, s in enumerate(sample):
+        if not s_i:
+            continue # ROOT
+        ls = ref_lines[s_i - 1].rstrip().split('\t')
+        ls[6] = str(s.head)
+        res_lines.append('\t'.join(ls))
+    return res_lines
+
+
