@@ -99,19 +99,19 @@ def extract_hw_hp_feat_indices(sample, hw_hp_dict):
     for s in sample:
         if s.token == ROOT:
             continue
-        if hw_hp_dict.get((sample[s.head].token, sample[s.head].pos)):
+        if hw_hp_dict.get((sample[s.head].token, sample[s.head].pos)) is not None:
             idx = hw_hp_dict.get((sample[s.head].token, sample[s.head].pos))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
             else:
                 feat_indices[idx] = 1
-        if hw_hp_dict.get((sample[s.head].token)):
+        if hw_hp_dict.get((sample[s.head].token)) is not None:
             idx = hw_hp_dict.get((sample[s.head].token))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
             else:
                 feat_indices[idx] = 1
-        if hw_hp_dict.get((sample[s.head].pos)):
+        if hw_hp_dict.get((sample[s.head].pos)) is not None:
             idx = hw_hp_dict.get((sample[s.head].pos))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
@@ -132,11 +132,11 @@ def extract_hw_hp_feat_indices_pair(head, child, hw_hp_dict):
     :return: feat_indices_list: list of indices
     """
     feat_indices = []
-    if hw_hp_dict.get((head.token, head.pos)):
+    if hw_hp_dict.get((head.token, head.pos)) is not None:
         feat_indices.append(hw_hp_dict.get((head.token, head.pos)))
-    if hw_hp_dict.get(head.token):
+    if hw_hp_dict.get(head.token) is not None:
         feat_indices.append(hw_hp_dict.get(head.token))
-    if hw_hp_dict.get(head.pos):
+    if hw_hp_dict.get(head.pos) is not None:
         feat_indices.append(hw_hp_dict.get(head.pos))
     return feat_indices
 
@@ -195,19 +195,19 @@ def extract_cw_cp_feat_indices(sample, cw_cp_dict):
     for s in sample:
         if s.token == ROOT:
             continue
-        if cw_cp_dict.get((s.token, s.pos)):
+        if cw_cp_dict.get((s.token, s.pos))is not None:
             idx = cw_cp_dict.get((s.token, s.pos))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
             else:
                 feat_indices[idx] = 1
-        if cw_cp_dict.get((s.token)):
+        if cw_cp_dict.get((s.token)) is not None:
             idx = cw_cp_dict.get((s.token))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
             else:
                 feat_indices[idx] = 1
-        if cw_cp_dict.get((s.pos)):
+        if cw_cp_dict.get((s.pos)) is not None:
             idx = cw_cp_dict.get((s.pos))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
@@ -228,11 +228,11 @@ def extract_cw_cp_feat_indices_pair(head, child, cw_cp_dict):
     :return: feat_indices_list: list of indices
     """
     feat_indices = []
-    if cw_cp_dict.get((child.token, child.pos)):
+    if cw_cp_dict.get((child.token, child.pos)) is not None:
         feat_indices.append(cw_cp_dict.get((child.token, child.pos)))
-    if cw_cp_dict.get(child.token):
+    if cw_cp_dict.get(child.token) is not None:
         feat_indices.append(cw_cp_dict.get(child.token))
-    if cw_cp_dict.get(child.pos):
+    if cw_cp_dict.get(child.pos) is not None:
         feat_indices.append(cw_cp_dict.get(child.pos))
     return feat_indices
 
@@ -369,7 +369,7 @@ def extract_hw_hp_cw_cp_feat_indices(sample, hw_hp_cw_cp_dict):
     for s in sample:
         if s.token == ROOT:
             continue
-        if hw_hp_cw_cp_dict.get((sample[s.head].token, sample[s.head].pos, s.token, s.pos)):
+        if hw_hp_cw_cp_dict.get((sample[s.head].token, sample[s.head].pos, s.token, s.pos)) is not None:
             idx = hw_hp_cw_cp_dict.get((sample[s.head].token, sample[s.head].pos, s.token, s.pos))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
@@ -387,7 +387,7 @@ def extract_hw_hp_cw_cp_feat_indices_pair(head, child, hw_hp_cw_cp_dict):
     :param: hw_hp_cw_cp_dict: the dictionary of indices (dict)
     :return: feat_idx: index of the feature (list)
     """
-    if hw_hp_cw_cp_dict.get((head.token, head.pos, child.token, child.pos)):
+    if hw_hp_cw_cp_dict.get((head.token, head.pos, child.token, child.pos)) is not None:
         return [hw_hp_cw_cp_dict.get((head.token, head.pos, child.token, child.pos))]
     else:
         return []
@@ -441,7 +441,7 @@ def extract_hp_cw_cp_feat_indices(sample, hp_cw_cp_dict):
     for s in sample:
         if s.token == ROOT:
             continue
-        if hp_cw_cp_dict.get((sample[s.head].pos, s.token, s.pos)):
+        if hp_cw_cp_dict.get((sample[s.head].pos, s.token, s.pos)) is not None:
             idx = hp_cw_cp_dict.get((sample[s.head].pos, s.token, s.pos))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
@@ -459,7 +459,7 @@ def extract_hp_cw_cp_feat_indices_pair(head, child, hp_cw_cp_dict):
     :param: hp_cw_cp_dict: the dictionary of indices (dict)
     :return: feat_idx: index of the feature (list)
     """
-    if hp_cw_cp_dict.get((head.pos, child.token, child.pos)):
+    if hp_cw_cp_dict.get((head.pos, child.token, child.pos)) is not None:
         return [hp_cw_cp_dict.get((head.pos, child.token, child.pos))]
     else:
         return []
@@ -513,7 +513,7 @@ def extract_hw_cw_cp_feat_indices(sample, hw_cw_cp_dict):
     for s in sample:
         if s.token == ROOT:
             continue
-        if hw_cw_cp_dict.get((sample[s.head].token, s.token, s.pos)):
+        if hw_cw_cp_dict.get((sample[s.head].token, s.token, s.pos)) is not None:
             idx = hw_cw_cp_dict.get((sample[s.head].token, s.token, s.pos))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
@@ -531,7 +531,7 @@ def extract_hw_cw_cp_feat_indices_pair(head, child, hw_cw_cp_dict):
     :param: hw_cw_cp_dict: the dictionary of indices (dict)
     :return: feat_idx: index of the feature (list)
     """
-    if hw_cw_cp_dict.get((head.token, child.token, child.pos)):
+    if hw_cw_cp_dict.get((head.token, child.token, child.pos)) is not None:
         return [hw_cw_cp_dict.get((head.token, child.token, child.pos))]
     else:
         return []
@@ -585,7 +585,7 @@ def extract_hw_hp_cp_feat_indices(sample, hw_hp_cp_dict):
     for s in sample:
         if s.token == ROOT:
             continue
-        if hw_hp_cp_dict.get((sample[s.head].token, sample[s.head].pos, s.pos)):
+        if hw_hp_cp_dict.get((sample[s.head].token, sample[s.head].pos, s.pos)) is not None:
             idx = hw_hp_cp_dict.get((sample[s.head].token, sample[s.head].pos, s.pos))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
@@ -603,7 +603,7 @@ def extract_hw_hp_cp_feat_indices_pair(head, child, hw_hp_cp_dict):
     :param: hw_hp_cp_dict: the dictionary of indices (dict)
     :return: feat_idx: index of the feature (list)
     """
-    if hw_hp_cp_dict.get((head.token, head.pos, child.pos)):
+    if hw_hp_cp_dict.get((head.token, head.pos, child.pos)) is not None:
         return [hw_hp_cp_dict.get((head.token, head.pos, child.pos))]
     else:
         return []
@@ -657,7 +657,7 @@ def extract_hw_hp_cw_feat_indices(sample, hw_hp_cw_dict):
     for s in sample:
         if s.token == ROOT:
             continue
-        if hw_hp_cw_dict.get((sample[s.head].token, sample[s.head].pos, s.token)):
+        if hw_hp_cw_dict.get((sample[s.head].token, sample[s.head].pos, s.token)) is not None:
             idx = hw_hp_cw_dict.get((sample[s.head].token, sample[s.head].pos, s.token))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
@@ -675,7 +675,7 @@ def extract_hw_hp_cw_feat_indices_pair(head, child, hw_hp_cw_dict):
     :param: hw_hp_cw_dict: the dictionary of indices (dict)
     :return: feat_idx: index of the feature (list)
     """
-    if hw_hp_cw_dict.get((head.token, head.pos, child.token)):
+    if hw_hp_cw_dict.get((head.token, head.pos, child.token)) is not None:
         return [hw_hp_cw_dict.get((head.token, head.pos, child.token))]
     else:
         return []
@@ -729,7 +729,7 @@ def extract_hw_cw_feat_indices(sample, hw_cw_dict):
     for s in sample:
         if s.token == ROOT:
             continue
-        if hw_cw_dict.get((sample[s.head].token, s.token)):
+        if hw_cw_dict.get((sample[s.head].token, s.token)) is not None:
             idx = hw_cw_dict.get((sample[s.head].token, s.token))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
@@ -747,7 +747,7 @@ def extract_hw_cw_feat_indices_pair(head, child, hw_cw_dict):
     :param: hw_cw_dict: the dictionary of indices (dict)
     :return: feat_idx: index of the feature (list)
     """
-    if hw_cw_dict.get((head.token, child.token)):
+    if hw_cw_dict.get((head.token, child.token)) is not None:
         return [hw_cw_dict.get((head.token, child.token))]
     else:
         return []
@@ -801,7 +801,7 @@ def extract_hp_cp_feat_indices(sample, hp_cp_dict):
     for s in sample:
         if s.token == ROOT:
             continue
-        if hp_cp_dict.get((sample[s.head].pos, s.pos)):
+        if hp_cp_dict.get((sample[s.head].pos, s.pos)) is not None:
             idx = hp_cp_dict.get((sample[s.head].pos, s.pos))
             if feat_indices.get(idx):
                 feat_indices[idx] += 1
@@ -819,7 +819,7 @@ def extract_hp_cp_feat_indices_pair(head, child, hp_cp_dict):
     :param: hw_hp_cw_cp_dict: the dictionary of indices (dict)
     :return: feat_idx: index of the feature (list)
     """
-    if hp_cp_dict.get((head.pos, child.pos)):
+    if hp_cp_dict.get((head.pos, child.pos)) is not None:
         return [hp_cp_dict.get((head.pos, child.pos))]
     else:
         return []
