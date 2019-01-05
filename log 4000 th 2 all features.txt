@@ -1,0 +1,84 @@
+"C:\Users\mdabb\Desktop\semester 9\advanced topics in RL 2\hw1_submit\Scripts\python.exe" "C:/Users/mdabb/Desktop/semester 9/NLP/ratov 2/python-nlp-dependency-parser/dependency_parser.py"
+generated head word _ head pos features , num features: 5033, total num features: 5033
+generated head word features , num features: 4584, total num features: 9617
+generated head pos features , num features: 34, total num features: 9651
+generated child word _ child pos features , num features: 4165, total num features: 13816
+generated child word features , num features: 3987, total num features: 17803
+generated child pos features , num features: 44, total num features: 17847
+generated h_pos c_word c_pos features , num features: 5062, total num features: 22909
+generated h_word h_pos c_pos features , num features: 5795, total num features: 28704
+generated h_pos c_pos features , num features: 550, total num features: 29254
+generated h_word h_pos c_word c_pos features , num features: 4967, total num features: 34221
+generated h_word c_word c_pos features , num features: 5075, total num features: 39296
+generated h_word h_pos c_word features , num features: 5019, total num features: 44315
+generated h_word c_word features , num features: 5131, total num features: 49446
+generated h_word c_word dist features , num features: 4274, total num features: 53720
+generated h_c_pos_seq features , num features: 1519, total num features: 55239
+generated h_pos h_next_pos c_prev_pos c_pos features , num features: 4827, total num features: 60066
+generated h_prev_pos h_pos c_prev_pos c_pos features , num features: 4872, total num features: 64938
+generated h_pos h_next_pos c_pos c_next_pos features , num features: 5181, total num features: 70119
+generated h_prev_pos h_pos c_pos c_next_pos features , num features: 4691, total num features: 74810
+generating features for all samples in the training set
+saved ground truth global features dictionary @  ./data/train.labeled.train.labeled.gt_global_features.dict
+time took: 2.202 secs
+total number features in the model:  74810
+initialized weights to zeros
+training started
+iteration:  0
+[========================================] 4000/4000 (100%)    0 to go
+iteration/epoch  0 - iteration time: 7.02 min , train accuracy:: sentence: 0.013   words: 0.600  , total time: 7.02 min
+iteration:  1
+[======================================= ] 3998/4000 ( 99%)    2 to goiteration/epoch  1 - iteration time: 7.23 min , train accuracy:: sentence: 0.017   words: 0.703  , total time: 14.25 min
+iteration:  2
+[========================================] 4000/4000 (100%)    0 to go
+[======================================= ] 3998/4000 ( 99%)    2 to goiteration/epoch  2 - iteration time: 6.94 min , train accuracy:: sentence: 0.019   words: 0.734  , total time: 21.19 min
+validation accuracy calculation step:
+[========================================] 4000/4000 (100%)    0 to go
+valid accuracy:: sentence: 0.076  words: 0.678
+saved weights @  ./data/train.labeled.train.labeled.weights
+saved checkpoint @  ./data/train.labeled.train.labeled_epoch_2.checkpoint
+iteration:  3
+[========================================] 4000/4000 (100%)    0 to go
+iteration/epoch  3 - iteration time: 6.84 min , train accuracy:: sentence: 0.018   words: 0.750  , total time: 29.77 min
+iteration:  4
+[======================================= ] 3998/4000 ( 99%)    2 to goiteration/epoch  4 - iteration time: 6.92 min , train accuracy:: sentence: 0.017   words: 0.763  , total time: 36.69 min
+[========================================] 4000/4000 (100%)    0 to go
+iteration:  5
+[========================================] 4000/4000 (100%)    0 to go
+iteration/epoch  5 - iteration time: 6.91 min , train accuracy:: sentence: 0.019   words: 0.773  , total time: 43.60 min
+validation accuracy calculation step:
+valid accuracy:: sentence: 0.081  words: 0.701
+saved weights @  ./data/train.labeled.train.labeled.weights
+saved checkpoint @  ./data/train.labeled.train.labeled_epoch_5.checkpoint
+iteration:  6
+[========================================] 4000/4000 (100%)    0 to go
+iteration/epoch  6 - iteration time: 6.78 min , train accuracy:: sentence: 0.021   words: 0.777  , total time: 52.04 min
+iteration:  7
+[======================================= ] 3999/4000 ( 99%)    1 to goiteration/epoch  7 - iteration time: 6.84 min , train accuracy:: sentence: 0.021   words: 0.783  , total time: 58.88 min
+iteration:  8
+[========================================] 4000/4000 (100%)    0 to go
+[========================================] 4000/4000 (100%)    0 to go
+iteration/epoch  8 - iteration time: 6.77 min , train accuracy:: sentence: 0.021   words: 0.787  , total time: 65.65 min
+validation accuracy calculation step:
+valid accuracy:: sentence: 0.079  words: 0.694
+saved weights @  ./data/train.labeled.train.labeled.weights
+saved checkpoint @  ./data/train.labeled.train.labeled_epoch_8.checkpoint
+iteration:  9
+[========================================] 4000/4000 (100%)    0 to go
+iteration/epoch  9 - iteration time: 6.84 min , train accuracy:: sentence: 0.023   words: 0.791  , total time: 74.17 min
+iteration:  10
+[========================================] 4000/4000 (100%)    0 to go
+iteration/epoch  10 - iteration time: 6.86 min , train accuracy:: sentence: 0.021   words: 0.797  , total time: 81.03 min
+iteration:  11
+[========================================] 4000/4000 (100%)    0 to go
+iteration/epoch  11 - iteration time: 6.84 min , train accuracy:: sentence: 0.025   words: 0.799  , total time: 87.86 min
+validation accuracy calculation step:
+valid accuracy:: sentence: 0.067  words: 0.679
+saved weights @  ./data/train.labeled.train.labeled.weights
+saved checkpoint @  ./data/train.labeled.train.labeled_epoch_11.checkpoint
+iteration:  12
+[========================================] 4000/4000 (100%)    0 to go
+iteration/epoch  12 - iteration time: 6.88 min , train accuracy:: sentence: 0.025   words: 0.800  , total time: 96.44 min
+iteration:  13
+[=====                                   ]  567/4000 ( 14%) 3433 to go
+Process finished with exit code -1

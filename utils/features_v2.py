@@ -95,62 +95,62 @@ def generate_features_dicts(path_to_file: str, save_to_file: bool = False, minim
     :return: dictionary described above
     """
 
-    feature_types = {'head word _ head pos': (lambda sample, s: [(sample[s.head].token, sample[s.head].pos)], 0),
-                     'head word': (lambda sample, s: [(sample[s.head].token)], 0),
-                     'head pos': (lambda sample, s: [(sample[s.head].pos)], 0),
-                     'child word _ child pos': (lambda sample, s: [(s.token, s.pos)], 0),
-                     'child word': (lambda sample, s: [(s.token)], 0),
-                     'child pos': (lambda sample, s: [(s.pos)], 0),
-                     'h_pos c_word c_pos': (lambda sample, s: [(sample[s.head].pos, s.token, s.pos)], 0),
-                     'h_word h_pos c_pos': (lambda sample, s: [(sample[s.head].token, sample[s.head].pos, s.pos)], 0),
-                     'h_pos c_pos': (lambda sample, s: [(sample[s.head].pos, s.pos)], 0),
+    feature_types = {'head word _ head pos': (lambda sample, s: [(sample[s.head].token, sample[s.head].pos)], 2),
+                     'head word': (lambda sample, s: [(sample[s.head].token)], 2),
+                     'head pos': (lambda sample, s: [(sample[s.head].pos)], 2),
+                     'child word _ child pos': (lambda sample, s: [(s.token, s.pos)], 2),
+                     'child word': (lambda sample, s: [(s.token)], 2),
+                     'child pos': (lambda sample, s: [(s.pos)], 2),
+                     'h_pos c_word c_pos': (lambda sample, s: [(sample[s.head].pos, s.token, s.pos)], 2),
+                     'h_word h_pos c_pos': (lambda sample, s: [(sample[s.head].token, sample[s.head].pos, s.pos)], 2),
+                     'h_pos c_pos': (lambda sample, s: [(sample[s.head].pos, s.pos)], 2),
                      }
 
     if not minimal:
         feature_types['h_word h_pos c_word c_pos'] = (lambda sample, s:
-                                                      [(sample[s.head].token, sample[s.head].pos, s.token, s.pos)], 0)
+                                                      [(sample[s.head].token, sample[s.head].pos, s.token, s.pos)], 2)
 
         feature_types['h_word c_word c_pos'] = (lambda sample, s:
-                                                [(sample[s.head].token, s.token, s.pos)], 0)
+                                                [(sample[s.head].token, s.token, s.pos)], 2)
 
         feature_types['h_word h_pos c_word'] = (lambda sample, s:
-                                                [(sample[s.head].token, sample[s.head].pos, s.token)], 0)
+                                                [(sample[s.head].token, sample[s.head].pos, s.token)], 2)
 
         feature_types['h_word c_word'] = (lambda sample, s:
-                                          [(sample[s.head].token, s.token)], 0)
+                                          [(sample[s.head].token, s.token)], 2)
 
     if use_mcdonald:
         # distance + is head to the right of child? (-) if child > head, (+) else
         # maybe we can add the distance to the unigrams?
         feature_types['h_word c_word dist'] = (lambda sample, s:
-                                               [(sample[s.head].token, s.token, sample[s.head].idx - s.idx)], 0)
+                                               [(sample[s.head].token, s.token, sample[s.head].idx - s.idx)], 2)
         # in-between POS features:
         feature_types['h_c_pos_seq'] = (lambda sample, s:
-                                        [tuple(l.pos for l in sample[sample[s.head].idx: s.idx + 1])], 0)
+                                        [tuple(l.pos for l in sample[sample[s.head].idx: s.idx + 1])], 2)
         # surrounding word POS features
         feature_types['h_pos h_next_pos c_prev_pos c_pos'] = (lambda sample, s:
                                                               [(sample[s.head].pos,
                                                                 sample[min(s.head + 1, sample[-1].idx)].pos,
                                                                 sample[max(s.idx - 1, 0)].pos,
-                                                                s.pos)], 0)
+                                                                s.pos)], 2)
 
         feature_types['h_prev_pos h_pos c_prev_pos c_pos'] = (lambda sample, s:
                                                               [(sample[max(s.head - 1, 0)].pos,
                                                                 sample[s.head].pos,
                                                                 sample[max(s.idx - 1, 0)].pos,
-                                                                s.pos)], 0)
+                                                                s.pos)], 2)
 
         feature_types['h_pos h_next_pos c_pos c_next_pos'] = (lambda sample, s:
                                                               [(sample[s.head].pos,
                                                                 sample[min(s.head + 1, sample[-1].idx)].pos,
                                                                 s.pos,
-                                                                sample[min(s.idx + 1, sample[-1].idx)].pos)], 0)
+                                                                sample[min(s.idx + 1, sample[-1].idx)].pos)], 2)
 
         feature_types['h_prev_pos h_pos c_pos c_next_pos'] = (lambda sample, s:
                                                               [(sample[max(s.head - 1, 0)].pos,
                                                                 sample[s.head].pos,
                                                                 s.pos,
-                                                                sample[min(s.idx + 1, sample[-1].idx)].pos)], 0)
+                                                                sample[min(s.idx + 1, sample[-1].idx)].pos)], 2)
     features_dicts = {}
     current_num_features = 0
     for feature_type_name, (feature_template, feature_threshold) in feature_types.items():
