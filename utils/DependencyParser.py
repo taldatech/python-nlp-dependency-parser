@@ -5,7 +5,7 @@ import numpy as np
 from copy import deepcopy
 from typing import List
 import os
-
+from utils.ProgressBar import  ProgressBar
 from utils.features_v2 import extract_global_features, generate_features_dicts, extract_local_feature_indices, \
     generate_global_features_dict
 from utils.utils import dep_sample_generator, \
@@ -86,12 +86,17 @@ class DependencyParser:
         """
         print("training started")
         self.w = np.zeros(self.num_of_features)
+        num_samples = 0
+        for _ in dep_sample_generator(self.training_file_path):
+            num_samples += 1
         st_time = time.time()
         # dep_weights = DepOptimizer(self.w, None, path_to_train_file=self.training_file_path,
         #                            dicts=self.dicts, minimal=self.minimal) # moved to class level
         train_word_accuracies = []
         train_sentenence_accuracies = []
         for i in range(num_iterations):
+            print("iteration: ", i)
+            progress = ProgressBar(num_samples, fmt=ProgressBar.FULL)
             total_sentences = 0
             correct_sentences = 0
             total_words = 0
@@ -137,10 +142,13 @@ class DependencyParser:
 
                 else:
                     correct_sentences += 1
+                progress.current += 1
+                progress()
             sen_acc = 1.0 * correct_sentences / total_sentences
             word_acc = 1.0 * correct_words / total_words
             train_sentenence_accuracies.append(sen_acc)
             train_word_accuracies.append(word_acc)
+            progress.done()
             print('iteration/epoch ', i, "- iteration time: %.2f min" % ((time.time() - it_st_time) / 60),
                   ", train accuracy:: sentence: %.3f " % sen_acc,
                   " words: %.3f " % word_acc,
