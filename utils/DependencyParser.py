@@ -5,6 +5,8 @@ import numpy as np
 from copy import deepcopy
 from typing import List
 import os
+
+from utils.features_v2 import extract_global_features, generate_features_dicts, extract_local_feature_indices
 from utils.utils import dep_sample_generator, \
     sample_to_full_successors, successors_to_sample, \
     DepSample, sample_to_successors, generate_fully_connected_graphs, generate_ground_truth_trees, \
@@ -36,20 +38,23 @@ class DependencyParser:
         self.training_file_path = path_to_train_file
         self.minimal = minimal
         self.path_to_valid_file = path_to_valid_file
-        if minimal:
-            self.dicts = [generate_unigram_feat_dict(path_to_train_file),
-                          generate_bigram_feat_dict_minimal(path_to_train_file)]
-        else:
-            self.dicts = [generate_unigram_feat_dict(path_to_train_file),
-                          generate_bigram_feat_dict(path_to_train_file)]
+        # if minimal:
+        #     self.dicts = [generate_unigram_feat_dict(path_to_train_file),
+        #                   generate_bigram_feat_dict_minimal(path_to_train_file)]
+        # else:
+        #     self.dicts = [generate_unigram_feat_dict(path_to_train_file),
+        #                   generate_bigram_feat_dict(path_to_train_file)]
 
-        self.feature_extractor = extract_unigram_bigram_feat_indices
+        self.dicts = generate_features_dicts(path_to_train_file, minimal=minimal)
+
+        self.feature_extractor = extract_global_features
         self.fc_graphs = generate_fully_connected_graphs(path_to_train_file)
         self.gt_trees = generate_ground_truth_trees(path_to_train_file)
         self.gt_global_features = generate_global_features_dict(path_to_train_file, self.feature_extractor, self.dicts,
                                                                 save_to_file=True, minimal=self.minimal)
 
-        self.num_of_features = np.sum([len(k) for d in self.dicts for k in d])
+        # self.num_of_features = np.sum([len(k) for d in self.dicts for k in d])
+        self.num_of_features = np.sum([len(d) for d in self.dicts.values()])
         print("total number features in the model: ", self.num_of_features)
 
         self.weights_file_name = self.training_file_path + '.weights'
@@ -61,7 +66,8 @@ class DependencyParser:
             self.w = np.zeros(self.num_of_features)  # try to load or init to 0
             print("initialized weights to zeros")
         self.dep_weights = DepOptimizer(self.w, None, path_to_train_file=self.training_file_path,
-                                        dicts=self.dicts, minimal=self.minimal)
+                                        dicts=self.dicts, minimal=self.minimal,
+                                        feature_extractor=extract_local_feature_indices)
 
     def perceptron_train(self, num_iterations: int, accuracy_step=10)-> None:
         """
@@ -89,6 +95,8 @@ class DependencyParser:
             for idx, sample in enumerate(dep_sample_generator(self.training_file_path)):
                 total_sentences += 1
                 sample_len = sample[-1].idx
+
+
                 successors = self.fc_graphs[sample_len]  # sample_to_full_successors(sample_len)
                 # dep_weights = DepOptimizer(self.w, sample, dicts=self.dicts, minimal=self.minimal)
                 self.dep_weights.update_sample(sample)
@@ -97,6 +105,9 @@ class DependencyParser:
                 mst_start_time = time.time()
                 argmax_tree = graph.mst().successors
                 argmax_tree = {k: v for k, v in argmax_tree.items() if v}
+                ground_truth_successors = self.gt_trees[idx]  # sample_to_successors(sample)
+
+
                 # print("mst calc time: %.5f secs" % (time.time() - mst_start_time))
                 infered_sample = successors_to_sample(deepcopy(sample), argmax_tree)
                 for j in range(len(sample)):
@@ -106,13 +117,14 @@ class DependencyParser:
                     total_words += 1
                     if sample[j].head == infered_sample[j].head:
                         correct_words += 1
-                ground_truth_successors = self.gt_trees[idx]  # sample_to_successors(sample)
 
                 #  according to python doc dictionary == works as expected
                 #  returning true only if both have same keys and same values to those keys
                 #  order of dict.values() corresponded to dict.keys()
                 if argmax_tree != ground_truth_successors:
+
                     # features_ground_truth = self.feature_extractor(sample, self.dicts, self.minimal)  #  could also be replaced by a dict
+
                     features_ground_truth = self.gt_global_features[idx]
                     feat_calc_start_time = time.time()
                     features_argmax = self.feature_extractor(infered_sample,
@@ -120,6 +132,7 @@ class DependencyParser:
                     # print("feature extraction time: %.5f" % (time.time() - feat_calc_start_time))
                     self.w[list(features_ground_truth.keys())] += np.array(list(features_ground_truth.values()))
                     self.w[list(features_argmax.keys())] -= np.array(list(features_argmax.values()))
+
                 else:
                     correct_sentences += 1
             sen_acc = 1.0 * correct_sentences / total_sentences
@@ -130,6 +143,7 @@ class DependencyParser:
                   ", train accuracy:: sentence: %.3f " % sen_acc,
                   " words: %.3f " % word_acc,
                   ", total time: %.2f min" % ((time.time() - st_time) / 60))
+
             if (i + 1) % accuracy_step == 0 and self.path_to_valid_file is not None:
                 print("validation accuracy calculation step:")
                 valid_sent_acc, valid_word_acc = self.calc_accuracy(self.path_to_valid_file)
