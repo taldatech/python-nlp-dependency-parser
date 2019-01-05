@@ -6,11 +6,12 @@ from copy import deepcopy
 from typing import List
 import os
 
-from utils.features_v2 import extract_global_features, generate_features_dicts, extract_local_feature_indices
+from utils.features_v2 import extract_global_features, generate_features_dicts, extract_local_feature_indices, \
+    generate_global_features_dict
 from utils.utils import dep_sample_generator, \
     sample_to_full_successors, successors_to_sample, \
     DepSample, sample_to_successors, generate_fully_connected_graphs, generate_ground_truth_trees, \
-    generate_global_features_dict, sample_to_lines
+    sample_to_lines
 from utils.features import generate_unigram_feat_dict, generate_bigram_feat_dict_minimal, generate_bigram_feat_dict, \
     extract_unigram_bigram_feat_indices_pair, extract_unigram_bigram_feat_indices, ROOT
 from utils.DepOptimizer import DepOptimizer
@@ -28,15 +29,17 @@ class DependencyParser:
     ...
     """
 
-    def __init__(self, path_to_train_file: str, minimal: bool = True, path_to_valid_file=None):
+    def __init__(self, path_to_train_file: str, minimal: bool = True, path_to_valid_file=None, use_mcdonald=True):
         """
         :param path_to_train_file: training file that contains the samples (str)
         :param path_to_valid_file: validation file that contains the samples (str)
         :param minimal: whether or not to use the minimal version of the features (bool)
+        :param use_mcdonald: whether or not to use features from McDonald's paper
         """
 
         self.training_file_path = path_to_train_file
         self.minimal = minimal
+        self.use_mcdonald = use_mcdonald
         self.path_to_valid_file = path_to_valid_file
         # if minimal:
         #     self.dicts = [generate_unigram_feat_dict(path_to_train_file),
@@ -45,13 +48,14 @@ class DependencyParser:
         #     self.dicts = [generate_unigram_feat_dict(path_to_train_file),
         #                   generate_bigram_feat_dict(path_to_train_file)]
 
-        self.dicts = generate_features_dicts(path_to_train_file, minimal=minimal)
+        self.dicts = generate_features_dicts(path_to_train_file, minimal=minimal, use_mcdonald=use_mcdonald)
 
         self.feature_extractor = extract_global_features
         self.fc_graphs = generate_fully_connected_graphs(path_to_train_file)
         self.gt_trees = generate_ground_truth_trees(path_to_train_file)
         self.gt_global_features = generate_global_features_dict(path_to_train_file, self.feature_extractor, self.dicts,
-                                                                save_to_file=True, minimal=self.minimal)
+                                                                save_to_file=True, minimal=self.minimal,
+                                                                use_mcdonald=use_mcdonald)
 
         # self.num_of_features = np.sum([len(k) for d in self.dicts for k in d])
         self.num_of_features = np.sum([len(d) for d in self.dicts.values()])
@@ -67,9 +71,10 @@ class DependencyParser:
             print("initialized weights to zeros")
         self.dep_weights = DepOptimizer(self.w, None, path_to_train_file=self.training_file_path,
                                         dicts=self.dicts, minimal=self.minimal,
-                                        feature_extractor=extract_local_feature_indices)
+                                        feature_extractor=extract_local_feature_indices,
+                                        use_mcdonald=use_mcdonald)
 
-    def perceptron_train(self, num_iterations: int, accuracy_step=10)-> None:
+    def perceptron_train(self, num_iterations: int, accuracy_step=10) -> None:
         """
         Given the number of iterations for training we loop
         over the training file said number of iterations preforming
@@ -96,7 +101,6 @@ class DependencyParser:
                 total_sentences += 1
                 sample_len = sample[-1].idx
 
-
                 successors = self.fc_graphs[sample_len]  # sample_to_full_successors(sample_len)
                 # dep_weights = DepOptimizer(self.w, sample, dicts=self.dicts, minimal=self.minimal)
                 self.dep_weights.update_sample(sample)
@@ -106,7 +110,6 @@ class DependencyParser:
                 argmax_tree = graph.mst().successors
                 argmax_tree = {k: v for k, v in argmax_tree.items() if v}
                 ground_truth_successors = self.gt_trees[idx]  # sample_to_successors(sample)
-
 
                 # print("mst calc time: %.5f secs" % (time.time() - mst_start_time))
                 infered_sample = successors_to_sample(deepcopy(sample), argmax_tree)
@@ -122,13 +125,12 @@ class DependencyParser:
                 #  returning true only if both have same keys and same values to those keys
                 #  order of dict.values() corresponded to dict.keys()
                 if argmax_tree != ground_truth_successors:
-
-                    # features_ground_truth = self.feature_extractor(sample, self.dicts, self.minimal)  #  could also be replaced by a dict
-
+                    # features_ground_truth = self.feature_extractor(sample, self.dicts, self.minimal)
+                    #  could also be replaced by a dict
                     features_ground_truth = self.gt_global_features[idx]
                     feat_calc_start_time = time.time()
                     features_argmax = self.feature_extractor(infered_sample,
-                                                             self.dicts, self.minimal)
+                                                             self.dicts, self.minimal, use_mcdonald=self.use_mcdonald)
                     # print("feature extraction time: %.5f" % (time.time() - feat_calc_start_time))
                     self.w[list(features_ground_truth.keys())] += np.array(list(features_ground_truth.values()))
                     self.w[list(features_argmax.keys())] -= np.array(list(features_argmax.values()))
@@ -170,7 +172,7 @@ class DependencyParser:
             pickle.dump(ckpt, fp)
         print("saved final results @ ", path)
 
-    def infer(self, sentence: List[DepSample])-> List[DepSample]:
+    def infer(self, sentence: List[DepSample]) -> List[DepSample]:
         """
         given a sentence we run chu_lie graph inference
         and return a list of DepSample with parsed sentence heads
@@ -250,4 +252,3 @@ class DependencyParser:
                             head = ls[6]
                         sample.append(DepSample(int(ls[0]), ls[1], ls[3], head))
         print("finished generating labeled file of ", path_to_unlabeled_file, " @ ", path_to_labeled)
-
