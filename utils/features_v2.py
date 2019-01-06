@@ -12,6 +12,22 @@ from typing import List, Dict
 from utils.utils import DepSample
 
 
+def generate_inbetween_features(sample, s):
+    """
+    This function generates the features:
+    (head word, b word, child word) for h.idx < b.idx < c.idx
+    :param: sample (list of DepSamples)
+    :param: s (DepSample)
+    :return: inbetween_features (list of tuples)
+    """
+    start_idx = min(s.idx, sample[s.head].idx)
+    end_idx = max(s.idx, sample[s.head].idx)
+    inbetween_features = []
+    for i in range(start_idx + 1, end_idx):
+        inbetween_features.append((sample[s.head].pos, sample[i].pos, s.pos))
+    return inbetween_features
+
+
 def generate_features_dict(path_to_file, sample2features, start_idx, feature_threshold=0, save_to_file=False,
                            features_name=''):
     """
@@ -135,6 +151,8 @@ def generate_features_dicts(path_to_file: str, save_to_file: bool = False, minim
         feature_types['h_c_pos_seq'] = (lambda sample, s:
                                         [tuple(l.pos for l in sample[sample[s.head].idx: s.idx + 1])],
                                         feature_threshold)
+
+        feature_types['h_b_c_pos'] = (lambda sample, s: generate_inbetween_features(sample, s), feature_threshold)
         # surrounding word POS features
         feature_types['h_pos h_next_pos c_prev_pos c_pos'] = (lambda sample, s:
                                                               [(sample[s.head].pos,
@@ -281,6 +299,13 @@ def extract_local_feature_indices(head: DepSample, child: DepSample, dictionarie
         idx = dictionaries['h_c_pos_seq'].get(tuple(l.pos for l in sample[head.idx: child.idx + 1]))
         if idx is not None:
             feature_ind.append(idx)
+
+        start_idx = min(child.idx, head.idx)
+        end_idx = max(child.idx, head.idx)
+        for i in range(start_idx + 1, end_idx):
+            idx = dictionaries['h_b_c_pos'].get((head.pos, sample[i].pos, child.pos))
+            if idx is not None:
+                feature_ind.append(idx)
 
         idx = dictionaries['h_pos h_next_pos c_prev_pos c_pos'].get((sample[head.idx].pos,
                                                                      sample[min(head.idx + 1, sample[-1].idx)].pos,
