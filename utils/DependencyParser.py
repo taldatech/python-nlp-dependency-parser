@@ -29,17 +29,20 @@ class DependencyParser:
     ...
     """
 
-    def __init__(self, path_to_train_file: str, minimal: bool = True, path_to_valid_file=None, use_mcdonald=True):
+    def __init__(self, path_to_train_file: str, minimal: bool = True, path_to_valid_file=None, use_mcdonald=True,
+                 feature_threshold=0):
         """
         :param path_to_train_file: training file that contains the samples (str)
         :param path_to_valid_file: validation file that contains the samples (str)
         :param minimal: whether or not to use the minimal version of the features (bool)
         :param use_mcdonald: whether or not to use features from McDonald's paper
+        :param feature_threshold: use features that appear more than this
         """
 
         self.training_file_path = path_to_train_file
         self.minimal = minimal
         self.use_mcdonald = use_mcdonald
+        self.feature_threshold = feature_threshold
         self.path_to_valid_file = path_to_valid_file
         # if minimal:
         #     self.dicts = [generate_unigram_feat_dict(path_to_train_file),
@@ -48,7 +51,8 @@ class DependencyParser:
         #     self.dicts = [generate_unigram_feat_dict(path_to_train_file),
         #                   generate_bigram_feat_dict(path_to_train_file)]
 
-        self.dicts = generate_features_dicts(path_to_train_file, minimal=minimal, use_mcdonald=use_mcdonald)
+        self.dicts = generate_features_dicts(path_to_train_file, minimal=minimal, use_mcdonald=use_mcdonald,
+                                             feature_threshold=self.feature_threshold)
 
         self.feature_extractor = extract_global_features
         self.fc_graphs = generate_fully_connected_graphs(path_to_train_file)
@@ -149,6 +153,7 @@ class DependencyParser:
             train_sentenence_accuracies.append(sen_acc)
             train_word_accuracies.append(word_acc)
             progress.done()
+            print('\n')
             print('iteration/epoch ', i, "- iteration time: %.2f min" % ((time.time() - it_st_time) / 60),
                   ", train accuracy:: sentence: %.3f " % sen_acc,
                   " words: %.3f " % word_acc,
