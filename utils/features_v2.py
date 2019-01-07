@@ -147,6 +147,16 @@ def generate_features_dicts(path_to_file: str, save_to_file: bool = False, minim
         feature_types['h_word c_word dist'] = (lambda sample, s:
                                                [(sample[s.head].token, s.token, sample[s.head].idx - s.idx)],
                                                feature_threshold)
+
+        feature_types['h_word c_word direction'] = (lambda sample, s:
+                                                    [(sample[s.head].token, s.token,
+                                                      np.sign(sample[s.head].idx - s.idx))],
+                                                    feature_threshold)
+
+        feature_types['h_pos c_pos direction'] = (lambda sample, s:
+                                                  [(sample[s.head].pos, s.pos,
+                                                    np.sign(sample[s.head].idx - s.idx))],
+                                                  feature_threshold)
         # in-between POS features:
         feature_types['h_c_pos_seq'] = (lambda sample, s:
                                         [tuple(l.pos for l in sample[sample[s.head].idx: s.idx + 1])],
@@ -296,6 +306,14 @@ def extract_local_feature_indices(head: DepSample, child: DepSample, dictionarie
         if idx is not None:
             feature_ind.append(idx)
 
+        idx = dictionaries['h_word c_word direction'].get((head.token, child.token, np.sign(head.idx - child.idx)))
+        if idx is not None:
+            feature_ind.append(idx)
+
+        idx = dictionaries['h_pos c_pos direction'].get((head.pos, child.pos, np.sign(head.idx - child.idx)))
+        if idx is not None:
+            feature_ind.append(idx)
+
         idx = dictionaries['h_c_pos_seq'].get(tuple(l.pos for l in sample[head.idx: child.idx + 1]))
         if idx is not None:
             feature_ind.append(idx)
@@ -315,23 +333,23 @@ def extract_local_feature_indices(head: DepSample, child: DepSample, dictionarie
             feature_ind.append(idx)
 
         idx = dictionaries['h_prev_pos h_pos c_prev_pos c_pos'].get((sample[max(head.idx - 1, 0)].pos,
-                                                                    sample[head.idx].pos,
-                                                                    sample[max(child.idx - 1, 0)].pos,
-                                                                    child.pos))
+                                                                     sample[head.idx].pos,
+                                                                     sample[max(child.idx - 1, 0)].pos,
+                                                                     child.pos))
         if idx is not None:
             feature_ind.append(idx)
 
         idx = dictionaries['h_pos h_next_pos c_pos c_next_pos'].get((sample[head.idx].pos,
-                                                                    sample[min(head.idx + 1, sample[-1].idx)].pos,
-                                                                    child.pos,
-                                                                    sample[min(child.idx + 1, sample[-1].idx)].pos))
+                                                                     sample[min(head.idx + 1, sample[-1].idx)].pos,
+                                                                     child.pos,
+                                                                     sample[min(child.idx + 1, sample[-1].idx)].pos))
         if idx is not None:
             feature_ind.append(idx)
 
         idx = dictionaries['h_prev_pos h_pos c_pos c_next_pos'].get((sample[max(head.idx - 1, 0)].pos,
-                                                                    sample[head.idx].pos,
-                                                                    child.pos,
-                                                                    sample[min(child.idx + 1, sample[-1].idx)].pos))
+                                                                     sample[head.idx].pos,
+                                                                     child.pos,
+                                                                     sample[min(child.idx + 1, sample[-1].idx)].pos))
         if idx is not None:
             feature_ind.append(idx)
 
