@@ -12,4 +12,4 @@ if __name__ == '__main__':
     sen_acc, word_acc = parser.calc_accuracy(path_to_test_file)
     print("sentence accuracy: %.3f" % sen_acc)
     print("word accuracy: %.3f" % word_acc)
-    # parser.perceptron_train(100)
+    

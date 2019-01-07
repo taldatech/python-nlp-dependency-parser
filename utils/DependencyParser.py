@@ -30,13 +30,14 @@ class DependencyParser:
     """
 
     def __init__(self, path_to_train_file: str, minimal: bool = True, path_to_valid_file=None, use_mcdonald=True,
-                 feature_threshold=0):
+                 feature_threshold=0, path_to_weights=None):
         """
         :param path_to_train_file: training file that contains the samples (str)
         :param path_to_valid_file: validation file that contains the samples (str)
         :param minimal: whether or not to use the minimal version of the features (bool)
         :param use_mcdonald: whether or not to use features from McDonald's paper
         :param feature_threshold: use features that appear more than this
+        :param path_to_weights: path to load weights from (str)
         """
 
         self.training_file_path = path_to_train_file
@@ -58,7 +59,7 @@ class DependencyParser:
         self.fc_graphs = generate_fully_connected_graphs(path_to_train_file)
         self.gt_trees = generate_ground_truth_trees(path_to_train_file)
         self.gt_global_features = generate_global_features_dict(path_to_train_file, self.feature_extractor, self.dicts,
-                                                                save_to_file=True, minimal=self.minimal,
+                                                                save_to_file=False, minimal=self.minimal,
                                                                 use_mcdonald=use_mcdonald)
 
         # self.num_of_features = np.sum([len(k) for d in self.dicts for k in d])
@@ -66,8 +67,10 @@ class DependencyParser:
         print("total number features in the model: ", self.num_of_features)
 
         self.weights_file_name = self.training_file_path + '.weights'
-
-        if os.path.isfile(self.weights_file_name):
+        if path_to_weights is not None and os.path.isfile(path_to_weights):
+            self.w = np.load(path_to_weights)
+            print("loaded weights from ", path_to_weights)
+        elif os.path.isfile(self.weights_file_name):
             self.w = np.load(self.weights_file_name)
             print("loaded weights from ", self.weights_file_name)
         else:
@@ -212,6 +215,10 @@ class DependencyParser:
         total_sentences = 0
         correct_words = 0
         correct_sentences = 0
+        num_samples = 0
+        for _ in dep_sample_generator(path_test_file):
+            num_samples += 1
+        progress = ProgressBar(num_samples, fmt=ProgressBar.FULL)
         samp_gen = dep_sample_generator(path_test_file)
         for sample in samp_gen:
             total_sentences += 1
@@ -228,18 +235,29 @@ class DependencyParser:
                     correct_parse = False
             if correct_parse:
                 correct_sentences += 1
+            progress.current += 1
+            progress()
+        progress.done()
+        print('\n')
         sentence_accuracy = 1.0 * correct_sentences / total_sentences
         word_accuracy = 1.0 * correct_words / total_words
         return sentence_accuracy, word_accuracy
 
-    def generate_labeled_file(self, path_to_unlabeled_file):
+    def generate_labeled_file(self, path_to_unlabeled_file, name=''):
         """
         This function generates labels for unlabeled samples in the same
         format as the original file.
         :param: path_to_unlabeled_file: path to location of the file (str)
+        :param: name: add name to the file
         """
         root = DepSample(0, ROOT, ROOT, 0)
-        path_to_labeled = path_to_unlabeled_file + '.labeled'
+        path_to_labeled = path_to_unlabeled_file
+        if name:
+            path_to_labeled += name + '.wtag'
+        else:
+            path_to_labeled += '.wtag'
+        print("generating labels for ", path_to_unlabeled_file)
+        start_time = time.time()
         with open(path_to_labeled, 'w') as fw:
             with open(path_to_unlabeled_file) as fr:
                 sample = [root]
@@ -265,3 +283,4 @@ class DependencyParser:
                             head = ls[6]
                         sample.append(DepSample(int(ls[0]), ls[1], ls[3], head))
         print("finished generating labeled file of ", path_to_unlabeled_file, " @ ", path_to_labeled)
+        print("total time taken: %.3f mins" % ((time.time() - start_time) / 60))
