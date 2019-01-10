@@ -284,3 +284,4 @@ class DependencyParser:
                         sample.append(DepSample(int(ls[0]), ls[1], ls[3], head))
         print("finished generating labeled file of ", path_to_unlabeled_file, " @ ", path_to_labeled)
         print("total time taken: %.3f mins" % ((time.time() - start_time) / 60))
+        return path_to_labeled
