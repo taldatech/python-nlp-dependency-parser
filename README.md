@@ -28,7 +28,6 @@ NLP Dependency Parsing using Perceptron and Chu-Liu-Edmonds. The task is buildin
 |`*.wtag` | labeled samples| 
 |`*.unlabeld` | samples without labels| 
 |`*.weights`| Checkpoint files for the models' weights (inferring/continual learning)|
-|`*.txt` | language (English) dictionaries for features generation| 
 
 ## Generating Labeled Files Example
 1. Prepare 2 pretrained models from `/pretrained`
